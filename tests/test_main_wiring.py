@@ -1,10 +1,11 @@
-"""Tests for main.py's dispatcher wiring (FR-BOT-002 PR 1/6, updated PR 2/6).
+"""Tests for main.py's dispatcher wiring (FR-BOT-002 PR 1/6, updated PR 2/6, PR 3/6).
 
 Only structural checks — build_dispatcher requires a live Bot/session to
 fully exercise polling, out of scope for a unit test. This asserts the
 BOT_COMMANDS content (in particular: /event, /register, /cancel are
-deliberately excluded, per main.py's own comment) and that all expected
-command routers are registered.
+deliberately excluded, per main.py's own comment, while /me is included
+since it takes no argument) and that all expected command routers are
+registered.
 """
 
 from __future__ import annotations
@@ -22,9 +23,9 @@ def test_bot_commands_excludes_argument_taking_commands() -> None:
     assert "cancel" not in command_names
 
 
-def test_bot_commands_includes_the_three_argument_less_commands() -> None:
+def test_bot_commands_includes_the_argument_less_commands() -> None:
     command_names = {c.command for c in BOT_COMMANDS}
-    assert command_names == {"start", "events", "help"}
+    assert command_names == {"start", "events", "me", "help"}
 
 
 def test_build_dispatcher_registers_all_expected_routers(tmp_path) -> None:
@@ -46,6 +47,7 @@ def test_build_dispatcher_registers_all_expected_routers(tmp_path) -> None:
         "events",
         "event_detail",
         "cancel",
+        "me",
         "fallback",
         "errors",
     }.issubset(router_names)

@@ -14,6 +14,7 @@ import httpx
 LOOKUP_PATH = "/v1/internal/telegram/lookup"
 EVENTS_PATH = "/v1/internal/telegram/events"
 REGISTER_PATH = "/v1/internal/telegram/register"
+ME_PATH = "/v1/internal/telegram/me"
 
 
 class ApiClientError(Exception):
@@ -120,6 +121,47 @@ class CancelResult:
     """
 
     status: str
+
+
+@dataclass(frozen=True, slots=True)
+class MeRegistrationEvent:
+    """Mirrors one `TelegramMeRegistrationEvent` entry from the API."""
+
+    id: str
+    title: str
+    starts_at: str
+    ends_at: str
+    location: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class MeRegistration:
+    """Mirrors one `TelegramMeRegistration` entry from the API.
+
+    `status` is the same union register()/cancel() already use
+    ('registered' | 'waitlisted' | 'attended' in practice here —
+    'cancelled' rows are excluded server-side by listMine's own filter,
+    so the bot never receives one to render a badge for).
+    """
+
+    id: str
+    status: str
+    event: MeRegistrationEvent
+
+
+@dataclass(frozen=True, slots=True)
+class MeSummary:
+    """Mirrors the API's `TelegramMeResult` response shape (FR-BOT-002
+    PR 3/6). Deliberately has no streak/account-type/link-status fields —
+    account type comes from the caller's own UserContext.is_temp (already
+    resolved by AuthMiddleware), the link CTA is static copy, and streak
+    does not exist anywhere in this codebase yet (see
+    01-requirement-validation.md in wf-20260801-feat-176 for the full
+    reasoning — a documented scope gap, not an oversight).
+    """
+
+    registrations: list[MeRegistration] = field(default_factory=list)
+    points_total: int = 0
 
 
 class ApiClient:
@@ -361,3 +403,52 @@ class ApiClient:
 
         body = response.json()
         return CancelResult(status=body["status"])
+
+    async def get_me_summary(self, *, directus_user_id: str, country: str) -> MeSummary:
+        """Fetch the caller's /me summary via GET /v1/internal/telegram/me.
+
+        FEAT-BOT-2 (FR-BOT-002 PR 3/6). Aggregates active registrations +
+        lifetime points total in one round trip. No 404 case is mapped
+        here (unlike lookup_telegram_user) — the bot only calls this once
+        AuthMiddleware has already confirmed user_context.is_known and
+        resolved a directus_user_id, so an unresolvable identity at this
+        point would indicate the bridge itself is broken, which the
+        generic ApiUnavailableError path below already covers by treating
+        any non-200 as unavailable.
+
+        Raises:
+            ApiUnavailableError: any non-2xx response, network error, or
+                timeout.
+        """
+        url = f"{self._base_url}{ME_PATH}"
+        try:
+            response = await self._client.get(
+                url,
+                params={"directusUserId": directus_user_id, "country": country},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"get_me_summary request failed: {exc}") from exc
+
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from me endpoint",
+                status_code=response.status_code,
+            )
+
+        body = response.json()
+        registrations = [
+            MeRegistration(
+                id=item["id"],
+                status=item["status"],
+                event=MeRegistrationEvent(
+                    id=item["event"]["id"],
+                    title=item["event"]["title"],
+                    starts_at=item["event"]["startsAt"],
+                    ends_at=item["event"]["endsAt"],
+                    location=item["event"].get("location"),
+                ),
+            )
+            for item in body.get("registrations", [])
+        ]
+        return MeSummary(registrations=registrations, points_total=body.get("pointsTotal", 0))

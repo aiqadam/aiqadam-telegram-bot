@@ -15,7 +15,7 @@ STRINGS: dict[str, str] = {
     "help.event": "/event <N> — подробности о мероприятии №N",
     "help.register": "/register <N> — запись на мероприятие №N",
     "help.cancel": "/cancel <N> — отмена записи на мероприятие №N",
-    "help.me": "/me — мои записи и статус аккаунта (скоро)",
+    "help.me": "/me — мои записи и статус аккаунта",
     "help.leaderboard": "/leaderboard — таблица лидеров (скоро)",
     "help.interests": "/interests — мои темы интересов (скоро)",
     "help.upgrade": "/upgrade — привязать email к аккаунту (скоро)",
@@ -65,4 +65,22 @@ STRINGS: dict[str, str] = {
     "cancel.usage": "Использование: /cancel <номер>, например /cancel 5",
     "cancel.confirmed": "Регистрация отменена.",
     "cancel.not_registered": "Вы не были записаны на это мероприятие.",
+    # FEAT-BOT-2 (FR-BOT-002 PR 3/6)
+    "me.unavailable": (
+        "Не удалось загрузить профиль — сервис временно недоступен. Попробуйте ещё раз чуть позже."
+    ),
+    "me.title": "<b>Ваш профиль</b>",
+    "me.registrations_title": "Мои записи:",
+    "me.registrations_empty": "Пока нет активных записей. Посмотрите /events!",
+    "me.registration_item": "{status_badge} {title} — {date}",
+    "me.status_registered": "[ЗАПИСАН]",
+    "me.status_waitlisted": "[ЛИСТ ОЖИДАНИЯ]",
+    "me.status_attended": "[ПОСЕТИЛ]",
+    "me.points_total": "Баллы: {points}",
+    "me.temp_account_nudge": (
+        "Это временный аккаунт — привяжите email через /upgrade, чтобы не потерять "
+        "историю записей и баллы."
+    ),
+    "me.link_web_cta": "Привязать аккаунт на сайте: используйте /upgrade.",
+    "me.button_cancel": "Отменить запись",
 }

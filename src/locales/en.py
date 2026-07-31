@@ -14,7 +14,7 @@ STRINGS: dict[str, str] = {
     "help.event": "/event <N> — details for event #N",
     "help.register": "/register <N> — register for event #N",
     "help.cancel": "/cancel <N> — cancel registration for event #N",
-    "help.me": "/me — my registrations and account status (coming soon)",
+    "help.me": "/me — my registrations and account status",
     "help.leaderboard": "/leaderboard — leaderboard (coming soon)",
     "help.interests": "/interests — my topic interests (coming soon)",
     "help.upgrade": "/upgrade — link an email to your account (coming soon)",
@@ -60,4 +60,23 @@ STRINGS: dict[str, str] = {
     "cancel.usage": "Usage: /cancel <number>, e.g. /cancel 5",
     "cancel.confirmed": "Registration cancelled.",
     "cancel.not_registered": "You weren't registered for this event.",
+    # FEAT-BOT-2 (FR-BOT-002 PR 3/6)
+    "me.unavailable": (
+        "Couldn't load your profile — the service is temporarily unavailable. "
+        "Please try again shortly."
+    ),
+    "me.title": "<b>Your profile</b>",
+    "me.registrations_title": "My registrations:",
+    "me.registrations_empty": "No active registrations yet. Check out /events!",
+    "me.registration_item": "{status_badge} {title} — {date}",
+    "me.status_registered": "[REGISTERED]",
+    "me.status_waitlisted": "[WAITLISTED]",
+    "me.status_attended": "[ATTENDED]",
+    "me.points_total": "Points: {points}",
+    "me.temp_account_nudge": (
+        "This is a temporary account — link an email via /upgrade so you don't "
+        "lose your registration history and points."
+    ),
+    "me.link_web_cta": "Link your account on the web: use /upgrade.",
+    "me.button_cancel": "Cancel registration",
 }
