@@ -16,7 +16,7 @@ STRINGS: dict[str, str] = {
     "help.cancel": "/cancel <N> — cancel registration for event #N",
     "help.me": "/me — my registrations and account status",
     "help.leaderboard": "/leaderboard — leaderboard",
-    "help.interests": "/interests — my topic interests (coming soon)",
+    "help.interests": "/interests — my topic interests",
     "help.upgrade": "/upgrade — link an email to your account (coming soon)",
     "help.help": "/help — this message",
     "events.empty": "No upcoming events yet. Check back soon!",
@@ -88,4 +88,21 @@ STRINGS: dict[str, str] = {
         "Couldn't load the leaderboard — the service is temporarily unavailable. "
         "Please try again shortly."
     ),
+    # FEAT-BOT-2 (FR-BOT-002 PR 5/6)
+    "interests.title": "<b>My topic interests</b>\nTap a topic to add or remove it.",
+    "interests.unavailable": (
+        "Couldn't load your topic interests — the service is temporarily unavailable. "
+        "Please try again shortly."
+    ),
+    # Same 7 concepts as TelegramEventTopicsService's own KNOWN_EVENT_TOPICS
+    # english `label` values (telegram-event-topics.service.ts) — reused
+    # verbatim for consistency between a member's interest and an event's
+    # topic tag.
+    "interests.topic.llm": "Large Language Models",
+    "interests.topic.mlops": "MLOps",
+    "interests.topic.computer-vision": "Computer Vision",
+    "interests.topic.product": "AI Product",
+    "interests.topic.career": "AI Careers",
+    "interests.topic.ethics": "AI Ethics",
+    "interests.topic.infra": "AI Infrastructure",
 }

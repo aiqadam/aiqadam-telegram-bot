@@ -17,7 +17,7 @@ STRINGS: dict[str, str] = {
     "help.cancel": "/cancel <N> — отмена записи на мероприятие №N",
     "help.me": "/me — мои записи и статус аккаунта",
     "help.leaderboard": "/leaderboard — таблица лидеров",
-    "help.interests": "/interests — мои темы интересов (скоро)",
+    "help.interests": "/interests — мои темы интересов",
     "help.upgrade": "/upgrade — привязать email к аккаунту (скоро)",
     "help.help": "/help — это сообщение",
     "events.empty": "Пока нет ближайших мероприятий. Загляните позже!",
@@ -92,4 +92,21 @@ STRINGS: dict[str, str] = {
         "Не удалось загрузить таблицу лидеров — сервис временно недоступен. "
         "Попробуйте ещё раз чуть позже."
     ),
+    # FEAT-BOT-2 (FR-BOT-002 PR 5/6)
+    "interests.title": "<b>Мои темы интересов</b>\nНажмите на тему, чтобы добавить или убрать её.",
+    "interests.unavailable": (
+        "Не удалось загрузить темы интересов — сервис временно недоступен. "
+        "Попробуйте ещё раз чуть позже."
+    ),
+    # Same 7 concepts as TelegramEventTopicsService's own
+    # KNOWN_EVENT_TOPIC_TRANSLATIONS ru values (telegram-event-topics.service.ts)
+    # — reused verbatim for consistency between a member's interest and an
+    # event's topic tag.
+    "interests.topic.llm": "Большие языковые модели",
+    "interests.topic.mlops": "MLOps",
+    "interests.topic.computer-vision": "Компьютерное зрение",
+    "interests.topic.product": "AI-продукт",
+    "interests.topic.career": "Карьера в AI",
+    "interests.topic.ethics": "Этика AI",
+    "interests.topic.infra": "AI-инфраструктура",
 }

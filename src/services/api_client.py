@@ -16,6 +16,8 @@ EVENTS_PATH = "/v1/internal/telegram/events"
 REGISTER_PATH = "/v1/internal/telegram/register"
 ME_PATH = "/v1/internal/telegram/me"
 LEADERBOARD_PATH = "/v1/internal/telegram/leaderboard"
+INTERESTS_PATH = "/v1/internal/telegram/interests"
+INTERESTS_TOGGLE_PATH = "/v1/internal/telegram/interests/toggle"
 
 
 class ApiClientError(Exception):
@@ -188,6 +190,19 @@ class LeaderboardResult:
     """
 
     entries: list[LeaderboardEntry] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class InterestsResult:
+    """Mirrors the API's `TelegramInterestsResult` response shape
+    (FR-BOT-002 PR 5/6). `selected`/`available` are bare topic_tag slugs —
+    label text is resolved bot-side from locales/{ru,en}.py, same as every
+    other picker in this bot (no label/icon data crosses the internal API
+    boundary; see telegram-auth.service.ts's INTEREST_TOPICS comment).
+    """
+
+    selected: list[str] = field(default_factory=list)
+    available: list[str] = field(default_factory=list)
 
 
 class ApiClient:
@@ -519,3 +534,74 @@ class ApiClient:
             for item in body.get("entries", [])
         ]
         return LeaderboardResult(entries=entries)
+
+    async def get_interests(self, *, directus_user_id: str) -> InterestsResult:
+        """Fetch the caller's topic interests via
+        GET /v1/internal/telegram/interests.
+
+        FEAT-BOT-2 (FR-BOT-002 PR 5/6). No `country` param — interests are
+        not tenant-scoped (member_interests has no country_code column;
+        see telegram-auth.service.ts's interestsQuerySchema comment).
+
+        Raises:
+            ApiUnavailableError: any non-2xx response, network error, or
+                timeout.
+        """
+        url = f"{self._base_url}{INTERESTS_PATH}"
+        try:
+            response = await self._client.get(
+                url,
+                params={"directusUserId": directus_user_id},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"get_interests request failed: {exc}") from exc
+
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from interests endpoint",
+                status_code=response.status_code,
+            )
+
+        body = response.json()
+        return InterestsResult(
+            selected=list(body.get("selected", [])),
+            available=list(body.get("available", [])),
+        )
+
+    async def toggle_interest(self, *, directus_user_id: str, topic: str) -> InterestsResult:
+        """Toggle one topic interest via
+        POST /v1/internal/telegram/interests/toggle.
+
+        FEAT-BOT-2 (FR-BOT-002 PR 5/6). Idempotent single-call toggle —
+        the API returns the same {selected, available} shape as
+        get_interests, post-toggle, so the handler can re-render in one
+        round trip without a second GET.
+
+        Raises:
+            ApiUnavailableError: any non-2xx response (including a 400 for
+                an out-of-list topic — the bot only ever sends slugs it
+                rendered from its own keyboard, so this should not happen
+                in practice), network error, or timeout.
+        """
+        url = f"{self._base_url}{INTERESTS_TOGGLE_PATH}"
+        try:
+            response = await self._client.post(
+                url,
+                json={"directusUserId": directus_user_id, "topic": topic},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"toggle_interest request failed: {exc}") from exc
+
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from interests toggle endpoint",
+                status_code=response.status_code,
+            )
+
+        body = response.json()
+        return InterestsResult(
+            selected=list(body.get("selected", [])),
+            available=list(body.get("available", [])),
+        )
