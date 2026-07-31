@@ -1,8 +1,9 @@
 """Inline keyboard builders.
 
-No interactive keyboards are needed yet for FEAT-BOT-1 (the /start smoke
-test and unknown-command fallback are both plain-text replies). This
-package is a stub establishing the required project structure ahead of
-FR-BOT-002/003, which will add real keyboards (event lists, registration
-confirmations, operator action buttons, etc.).
+FEAT-BOT-1 shipped this as an empty stub package (no interactive keyboards
+were needed for the /start smoke test / unknown-command fallback).
+FEAT-BOT-2 PR 1/6 adds the first real keyboards in `events.py` (pagination
++ Register/"I'm going" for /events and /event <N>). More will be added
+alongside each future handler in this FR's remaining PRs (registration
+confirmations, leaderboard, interests toggles, operator action buttons).
 """

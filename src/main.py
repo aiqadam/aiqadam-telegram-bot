@@ -12,10 +12,12 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.types import BotCommand
 
 from src import error_handler
 from src.config import Settings, load_settings
-from src.handlers import fallback, start
+from src.handlers import event_detail, events, fallback, start
+from src.handlers import help as help_handler
 from src.logging_setup import configure_logging
 from src.middlewares.auth import AuthMiddleware
 from src.middlewares.logging_middleware import LoggingMiddleware
@@ -26,9 +28,29 @@ from src.services.user_cache import UserCache
 
 logger = logging.getLogger("bot.main")
 
+# FR-BOT-002 Notes: "The bot registers commands with BotFather via
+# set_my_commands on startup." Only argument-LESS commands belong here —
+# BotFather's own command menu convention has no way to express a required
+# argument. /event takes a required id, so it is intentionally excluded
+# (same reasoning FR-BOT-002's remaining PRs will apply to /register <N>
+# and /cancel <N>); users invoke "/event <id>" as free text, matched by
+# handlers/event_detail.py's Command("event") filter + CommandObject.args,
+# same mechanism BotFather-registered commands use under the hood — the
+# only difference is whether it appears in Telegram's command-menu UI.
+BOT_COMMANDS = (
+    BotCommand(command="start", description="Начать / выбрать страну"),
+    BotCommand(command="events", description="Ближайшие мероприятия"),
+    BotCommand(command="help", description="Список команд"),
+)
+
 
 def build_dispatcher(settings: Settings, api_client: ApiClient, cache: UserCache) -> Dispatcher:
     dispatcher = Dispatcher()
+    # Workflow data: available to every handler as a named parameter
+    # (aiogram's dependency injection matches by name), same as the
+    # "message"/"callback" parameters aiogram injects natively. api_client
+    # is a long-lived singleton constructed once in run() below.
+    dispatcher["api_client"] = api_client
 
     # Middleware order matters (FR-BOT-001 §5): logging (outermost, times
     # everything) -> rate-limit (reject before any API call is made) ->
@@ -40,8 +62,13 @@ def build_dispatcher(settings: Settings, api_client: ApiClient, cache: UserCache
 
     # /start must be registered before the unknown-command fallback, since
     # aiogram routers are matched in registration order and the fallback
-    # matches any "/..." text.
+    # matches any "/..." text. help/events/event_detail are all specific
+    # Command() filters, so their relative order versus each other doesn't
+    # matter — only "before fallback" does.
     dispatcher.include_router(start.router)
+    dispatcher.include_router(help_handler.router)
+    dispatcher.include_router(events.router)
+    dispatcher.include_router(event_detail.router)
     dispatcher.include_router(fallback.router)
     dispatcher.include_router(error_handler.router)
 
@@ -68,6 +95,7 @@ async def run() -> None:
     logger.info("bot_starting")
     try:
         await bot.delete_webhook(drop_pending_updates=True)
+        await bot.set_my_commands(list(BOT_COMMANDS))
         await dispatcher.start_polling(bot)
     finally:
         await api_client.aclose()
