@@ -16,7 +16,7 @@ from aiogram.types import BotCommand
 
 from src import error_handler
 from src.config import Settings, load_settings
-from src.handlers import cancel, event_detail, events, fallback, me, start
+from src.handlers import cancel, event_detail, events, fallback, leaderboard, me, start
 from src.handlers import help as help_handler
 from src.logging_setup import configure_logging
 from src.middlewares.auth import AuthMiddleware
@@ -36,12 +36,13 @@ logger = logging.getLogger("bot.main")
 # free text, matched by the handler's own Command("register") filter +
 # CommandObject.args, same mechanism BotFather-registered commands use
 # under the hood — the only difference is whether it appears in Telegram's
-# command-menu UI. /me (FR-BOT-002 PR 3/6) takes no argument, so it
-# belongs in this menu like /events and /help.
+# command-menu UI. /me (FR-BOT-002 PR 3/6) and /leaderboard (PR 4/6) take
+# no argument, so both belong in this menu like /events and /help.
 BOT_COMMANDS = (
     BotCommand(command="start", description="Начать / выбрать страну"),
     BotCommand(command="events", description="Ближайшие мероприятия"),
     BotCommand(command="me", description="Мои записи и статус аккаунта"),
+    BotCommand(command="leaderboard", description="Таблица лидеров"),
     BotCommand(command="help", description="Список команд"),
 )
 
@@ -73,6 +74,7 @@ def build_dispatcher(settings: Settings, api_client: ApiClient, cache: UserCache
     dispatcher.include_router(event_detail.router)
     dispatcher.include_router(cancel.router)
     dispatcher.include_router(me.router)
+    dispatcher.include_router(leaderboard.router)
     dispatcher.include_router(fallback.router)
     dispatcher.include_router(error_handler.router)
 

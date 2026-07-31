@@ -15,7 +15,7 @@ STRINGS: dict[str, str] = {
     "help.register": "/register <N> — register for event #N",
     "help.cancel": "/cancel <N> — cancel registration for event #N",
     "help.me": "/me — my registrations and account status",
-    "help.leaderboard": "/leaderboard — leaderboard (coming soon)",
+    "help.leaderboard": "/leaderboard — leaderboard",
     "help.interests": "/interests — my topic interests (coming soon)",
     "help.upgrade": "/upgrade — link an email to your account (coming soon)",
     "help.help": "/help — this message",
@@ -79,4 +79,13 @@ STRINGS: dict[str, str] = {
     ),
     "me.link_web_cta": "Link your account on the web: use /upgrade.",
     "me.button_cancel": "Cancel registration",
+    # FEAT-BOT-2 (FR-BOT-002 PR 4/6)
+    "leaderboard.title": "<b>Leaderboard</b>",
+    "leaderboard.empty": "No members with points in your country yet.",
+    "leaderboard.item": "{rank}. {name} — {points}",
+    "leaderboard.item_caller": "<b>{rank}. {name} — {points} (you)</b>",
+    "leaderboard.unavailable": (
+        "Couldn't load the leaderboard — the service is temporarily unavailable. "
+        "Please try again shortly."
+    ),
 }

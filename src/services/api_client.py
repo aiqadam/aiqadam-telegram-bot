@@ -15,6 +15,7 @@ LOOKUP_PATH = "/v1/internal/telegram/lookup"
 EVENTS_PATH = "/v1/internal/telegram/events"
 REGISTER_PATH = "/v1/internal/telegram/register"
 ME_PATH = "/v1/internal/telegram/me"
+LEADERBOARD_PATH = "/v1/internal/telegram/leaderboard"
 
 
 class ApiClientError(Exception):
@@ -162,6 +163,31 @@ class MeSummary:
 
     registrations: list[MeRegistration] = field(default_factory=list)
     points_total: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class LeaderboardEntry:
+    """Mirrors one `TelegramLeaderboardEntry` entry from the API.
+
+    No email/handle fields — the API deliberately narrows the response to
+    what a leaderboard render needs (see 02-impact-analysis.md's PII risk
+    flag); the bot has nothing further to redact.
+    """
+
+    display_name: str
+    points: int
+    is_caller: bool
+
+
+@dataclass(frozen=True, slots=True)
+class LeaderboardResult:
+    """Mirrors the API's `TelegramLeaderboardResult` response shape
+    (FR-BOT-002 PR 4/6). At most one entry has is_caller=True — isCaller
+    is resolved API-side (see telegram-auth.service.ts's getLeaderboard),
+    so the bot only needs to read the flag, never compute it.
+    """
+
+    entries: list[LeaderboardEntry] = field(default_factory=list)
 
 
 class ApiClient:
@@ -452,3 +478,44 @@ class ApiClient:
             for item in body.get("registrations", [])
         ]
         return MeSummary(registrations=registrations, points_total=body.get("pointsTotal", 0))
+
+    async def get_leaderboard(self, *, directus_user_id: str, country: str) -> LeaderboardResult:
+        """Fetch the top-10 country leaderboard via
+        GET /v1/internal/telegram/leaderboard.
+
+        FEAT-BOT-2 (FR-BOT-002 PR 4/6). `directus_user_id` is required (not
+        optional, unlike get_event_detail's) — the API needs it to resolve
+        isCaller per row; the bot only calls this once AuthMiddleware has
+        already confirmed a known identity, same precondition
+        get_me_summary already assumes.
+
+        Raises:
+            ApiUnavailableError: any non-2xx response, network error, or
+                timeout.
+        """
+        url = f"{self._base_url}{LEADERBOARD_PATH}"
+        try:
+            response = await self._client.get(
+                url,
+                params={"directusUserId": directus_user_id, "country": country},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"get_leaderboard request failed: {exc}") from exc
+
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from leaderboard endpoint",
+                status_code=response.status_code,
+            )
+
+        body = response.json()
+        entries = [
+            LeaderboardEntry(
+                display_name=item["displayName"],
+                points=item["points"],
+                is_caller=bool(item.get("isCaller", False)),
+            )
+            for item in body.get("entries", [])
+        ]
+        return LeaderboardResult(entries=entries)

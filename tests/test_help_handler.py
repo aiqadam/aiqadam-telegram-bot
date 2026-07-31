@@ -1,4 +1,4 @@
-"""Tests for the /help handler (FR-BOT-002 PR 1/6, updated PR 2/6, PR 3/6)."""
+"""Tests for the /help handler (FR-BOT-002 PR 1/6, updated PR 2/6, PR 3/6, PR 4/6)."""
 
 from __future__ import annotations
 
@@ -41,11 +41,12 @@ async def test_help_marks_still_unimplemented_commands_as_coming_soon() -> None:
         await handle_help(update.message)
         (sent_text,), _ = answer.call_args
 
-    # /leaderboard, /interests, /upgrade remain unimplemented after this PR
-    # (FR-BOT-002 PR 3/6 ships /me — see below) — each locale string still
-    # carries a "coming soon" style marker so /help doesn't silently
-    # promise something unimplemented.
-    for key in ("help.leaderboard", "help.interests", "help.upgrade"):
+    # /interests, /upgrade remain unimplemented after this PR (FR-BOT-002
+    # PR 4/6 ships /leaderboard — see
+    # test_help_no_longer_marks_leaderboard_as_coming_soon below) — each
+    # locale string still carries a "coming soon" style marker so /help
+    # doesn't silently promise something unimplemented.
+    for key in ("help.interests", "help.upgrade"):
         assert t(key) in sent_text
         assert "скоро" in t(key) or "soon" in t(key).lower()
 
@@ -78,3 +79,17 @@ async def test_help_no_longer_marks_me_as_coming_soon() -> None:
     # carry the "coming soon" marker PR 1 gave it.
     assert t("help.me") in sent_text
     assert "скоро" not in t("help.me") and "soon" not in t("help.me").lower()
+
+
+@pytest.mark.asyncio
+async def test_help_no_longer_marks_leaderboard_as_coming_soon() -> None:
+    update = make_message_update(text="/help")
+
+    with mock_answer(update.message) as answer:
+        await handle_help(update.message)
+        (sent_text,), _ = answer.call_args
+
+    # FR-BOT-002 PR 4/6 implements /leaderboard — its /help line must no
+    # longer carry the "coming soon" marker PR 1 gave it.
+    assert t("help.leaderboard") in sent_text
+    assert "скоро" not in t("help.leaderboard") and "soon" not in t("help.leaderboard").lower()

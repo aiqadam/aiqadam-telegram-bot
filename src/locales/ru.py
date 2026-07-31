@@ -16,7 +16,7 @@ STRINGS: dict[str, str] = {
     "help.register": "/register <N> — запись на мероприятие №N",
     "help.cancel": "/cancel <N> — отмена записи на мероприятие №N",
     "help.me": "/me — мои записи и статус аккаунта",
-    "help.leaderboard": "/leaderboard — таблица лидеров (скоро)",
+    "help.leaderboard": "/leaderboard — таблица лидеров",
     "help.interests": "/interests — мои темы интересов (скоро)",
     "help.upgrade": "/upgrade — привязать email к аккаунту (скоро)",
     "help.help": "/help — это сообщение",
@@ -83,4 +83,13 @@ STRINGS: dict[str, str] = {
     ),
     "me.link_web_cta": "Привязать аккаунт на сайте: используйте /upgrade.",
     "me.button_cancel": "Отменить запись",
+    # FEAT-BOT-2 (FR-BOT-002 PR 4/6)
+    "leaderboard.title": "<b>Таблица лидеров</b>",
+    "leaderboard.empty": "Пока нет участников с баллами в вашей стране.",
+    "leaderboard.item": "{rank}. {name} — {points}",
+    "leaderboard.item_caller": "<b>{rank}. {name} — {points} (вы)</b>",
+    "leaderboard.unavailable": (
+        "Не удалось загрузить таблицу лидеров — сервис временно недоступен. "
+        "Попробуйте ещё раз чуть позже."
+    ),
 }
