@@ -13,8 +13,8 @@ STRINGS: dict[str, str] = {
     "help.start": "/start — приветствие и выбор страны",
     "help.events": "/events — список ближайших мероприятий",
     "help.event": "/event <N> — подробности о мероприятии №N",
-    "help.register": "/register <N> — запись на мероприятие №N (скоро)",
-    "help.cancel": "/cancel <N> — отмена записи на мероприятие №N (скоро)",
+    "help.register": "/register <N> — запись на мероприятие №N",
+    "help.cancel": "/cancel <N> — отмена записи на мероприятие №N",
     "help.me": "/me — мои записи и статус аккаунта (скоро)",
     "help.leaderboard": "/leaderboard — таблица лидеров (скоро)",
     "help.interests": "/interests — мои темы интересов (скоро)",
@@ -48,7 +48,21 @@ STRINGS: dict[str, str] = {
     "event.capacity_line": " / {capacity}",
     "event.button_register": "Зарегистрироваться",
     "event.button_going": "✅ Вы записаны",
-    "event.register_placeholder": (
-        "Регистрация появится в одном из следующих обновлений бота. Совсем скоро!"
+    # FEAT-BOT-2 (FR-BOT-002 PR 2/6)
+    "register.usage": "Использование: /register <номер>, например /register 5",
+    "register.confirmed": "Вы зарегистрированы на «{title}»! Ждём вас там.",
+    "register.waitlisted": (
+        "Мероприятие «{title}» уже заполнено — вы добавлены в список ожидания. "
+        "Мы сообщим, если освободится место."
     ),
+    "register.consent_required": (
+        "Это мероприятие требует дополнительного согласия — завершите регистрацию "
+        "на сайте aiqadam.org."
+    ),
+    "register.ineligible": (
+        "Не удалось завершить регистрацию — попробуйте выполнить /start ещё раз."
+    ),
+    "cancel.usage": "Использование: /cancel <номер>, например /cancel 5",
+    "cancel.confirmed": "Регистрация отменена.",
+    "cancel.not_registered": "Вы не были записаны на это мероприятие.",
 }

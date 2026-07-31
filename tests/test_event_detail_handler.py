@@ -1,5 +1,5 @@
-"""Tests for the /event <N> handler and its Register placeholder callback
-(FR-BOT-002 PR 1/6)."""
+"""Tests for the /event <N> handler and its Register button callback
+(FR-BOT-002 PR 1/6 for /event, PR 2/6 for the real register callback)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import httpx
 import pytest
 from aiogram.filters import CommandObject
 
-from src.handlers.event_detail import handle_event_detail, handle_register_placeholder
+from src.handlers.event_detail import handle_event_detail, handle_register_callback
 from src.locales import t
 from src.middlewares.auth import UserContext
 from src.services.api_client import ApiClient
@@ -161,9 +161,32 @@ async def test_event_detail_shows_unavailable_message_on_api_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_register_placeholder_shows_coming_soon_alert_without_crashing() -> None:
+async def test_register_callback_shows_confirmation_alert_for_known_user() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/v1/internal/telegram/register"
+        return httpx.Response(200, json={"status": "registered", "eventTitle": "Meetup #1"})
+
+    api_client = _client_for(handler)
     callback = make_callback_query(data="evreg:evt-1")
 
     with mock_callback_answer(callback) as cb_answer:
-        await handle_register_placeholder(callback)
-        cb_answer.assert_awaited_once_with(t("event.register_placeholder"), show_alert=True)
+        await handle_register_callback(callback, api_client, _known_user_context())
+        cb_answer.assert_awaited_once_with(
+            t("register.confirmed").format(title="Meetup #1"), show_alert=True
+        )
+    await api_client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_register_callback_shows_unavailable_alert_when_user_context_is_none() -> None:
+    def handler(_: httpx.Request) -> httpx.Response:
+        raise AssertionError("should not call the API without a resolved user context")
+
+    api_client = _client_for(handler)
+    callback = make_callback_query(data="evreg:evt-1")
+
+    with mock_callback_answer(callback) as cb_answer:
+        await handle_register_callback(callback, api_client, None)
+        cb_answer.assert_awaited_once_with(t("event.unavailable"), show_alert=True)
+    await api_client.aclose()

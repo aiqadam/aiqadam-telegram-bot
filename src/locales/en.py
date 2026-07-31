@@ -12,8 +12,8 @@ STRINGS: dict[str, str] = {
     "help.start": "/start — welcome message and country selection",
     "help.events": "/events — list upcoming events",
     "help.event": "/event <N> — details for event #N",
-    "help.register": "/register <N> — register for event #N (coming soon)",
-    "help.cancel": "/cancel <N> — cancel registration for event #N (coming soon)",
+    "help.register": "/register <N> — register for event #N",
+    "help.cancel": "/cancel <N> — cancel registration for event #N",
     "help.me": "/me — my registrations and account status (coming soon)",
     "help.leaderboard": "/leaderboard — leaderboard (coming soon)",
     "help.interests": "/interests — my topic interests (coming soon)",
@@ -46,7 +46,18 @@ STRINGS: dict[str, str] = {
     "event.capacity_line": " / {capacity}",
     "event.button_register": "Register",
     "event.button_going": "✅ You're going",
-    "event.register_placeholder": (
-        "Registration is landing in an upcoming bot update. Coming very soon!"
+    # FEAT-BOT-2 (FR-BOT-002 PR 2/6)
+    "register.usage": "Usage: /register <number>, e.g. /register 5",
+    "register.confirmed": 'You\'re registered for "{title}"! See you there.',
+    "register.waitlisted": (
+        '"{title}" is full — you\'ve been added to the waitlist. '
+        "We'll let you know if a spot opens up."
     ),
+    "register.consent_required": (
+        "This event requires additional confirmation — please finish registering on aiqadam.org."
+    ),
+    "register.ineligible": "Couldn't complete registration — try running /start again.",
+    "cancel.usage": "Usage: /cancel <number>, e.g. /cancel 5",
+    "cancel.confirmed": "Registration cancelled.",
+    "cancel.not_registered": "You weren't registered for this event.",
 }

@@ -56,12 +56,12 @@ def event_detail_keyboard(
 ) -> InlineKeyboardMarkup:
     """Build the Register / "I'm going" button for /event <N>.
 
-    FEAT-BOT-2 scope note: this button's callback is a placeholder — actual
-    registration ships in PR 2 (/register). Tapping it while only this PR
-    is deployed shows event.register_placeholder rather than crashing (see
-    handlers/event_detail.py's callback handler). is_registered controls
-    only the label; there is no separate "cancel" affordance yet (that's
-    PR 2's /cancel).
+    FEAT-BOT-2 PR 2/6: this button's callback now performs a real
+    registration (see handlers/event_detail.py's handle_register_callback)
+    — PR 1 shipped it as a placeholder toast. is_registered controls only
+    the label; there is still no separate "cancel" affordance on this
+    button (cancelling uses the standalone /cancel <N> command; a Cancel
+    button here is deferred to PR 3's /me registration list).
     """
     label = t("event.button_going", lang) if is_registered else t("event.button_register", lang)
     button = InlineKeyboardButton(

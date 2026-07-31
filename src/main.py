@@ -16,7 +16,7 @@ from aiogram.types import BotCommand
 
 from src import error_handler
 from src.config import Settings, load_settings
-from src.handlers import event_detail, events, fallback, start
+from src.handlers import cancel, event_detail, events, fallback, start
 from src.handlers import help as help_handler
 from src.logging_setup import configure_logging
 from src.middlewares.auth import AuthMiddleware
@@ -31,12 +31,12 @@ logger = logging.getLogger("bot.main")
 # FR-BOT-002 Notes: "The bot registers commands with BotFather via
 # set_my_commands on startup." Only argument-LESS commands belong here —
 # BotFather's own command menu convention has no way to express a required
-# argument. /event takes a required id, so it is intentionally excluded
-# (same reasoning FR-BOT-002's remaining PRs will apply to /register <N>
-# and /cancel <N>); users invoke "/event <id>" as free text, matched by
-# handlers/event_detail.py's Command("event") filter + CommandObject.args,
-# same mechanism BotFather-registered commands use under the hood — the
-# only difference is whether it appears in Telegram's command-menu UI.
+# argument. /event, /register, and /cancel all take a required id, so all
+# three are intentionally excluded; users invoke e.g. "/register <id>" as
+# free text, matched by the handler's own Command("register") filter +
+# CommandObject.args, same mechanism BotFather-registered commands use
+# under the hood — the only difference is whether it appears in Telegram's
+# command-menu UI.
 BOT_COMMANDS = (
     BotCommand(command="start", description="Начать / выбрать страну"),
     BotCommand(command="events", description="Ближайшие мероприятия"),
@@ -62,13 +62,14 @@ def build_dispatcher(settings: Settings, api_client: ApiClient, cache: UserCache
 
     # /start must be registered before the unknown-command fallback, since
     # aiogram routers are matched in registration order and the fallback
-    # matches any "/..." text. help/events/event_detail are all specific
-    # Command() filters, so their relative order versus each other doesn't
-    # matter — only "before fallback" does.
+    # matches any "/..." text. help/events/event_detail/cancel are all
+    # specific Command() filters, so their relative order versus each
+    # other doesn't matter — only "before fallback" does.
     dispatcher.include_router(start.router)
     dispatcher.include_router(help_handler.router)
     dispatcher.include_router(events.router)
     dispatcher.include_router(event_detail.router)
+    dispatcher.include_router(cancel.router)
     dispatcher.include_router(fallback.router)
     dispatcher.include_router(error_handler.router)
 
