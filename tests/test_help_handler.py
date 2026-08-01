@@ -34,23 +34,6 @@ async def test_help_lists_all_ten_commands() -> None:
 
 
 @pytest.mark.asyncio
-async def test_help_marks_still_unimplemented_commands_as_coming_soon() -> None:
-    update = make_message_update(text="/help")
-
-    with mock_answer(update.message) as answer:
-        await handle_help(update.message)
-        (sent_text,), _ = answer.call_args
-
-    # /upgrade remains unimplemented after this PR (FR-BOT-002 PR 5/6 ships
-    # /interests — see test_help_no_longer_marks_interests_as_coming_soon
-    # below) — its locale string still carries a "coming soon" style
-    # marker so /help doesn't silently promise something unimplemented.
-    for key in ("help.upgrade",):
-        assert t(key) in sent_text
-        assert "скоро" in t(key) or "soon" in t(key).lower()
-
-
-@pytest.mark.asyncio
 async def test_help_no_longer_marks_register_and_cancel_as_coming_soon() -> None:
     update = make_message_update(text="/help")
 
@@ -106,3 +89,20 @@ async def test_help_no_longer_marks_interests_as_coming_soon() -> None:
     # longer carry the "coming soon" marker PR 1 gave it.
     assert t("help.interests") in sent_text
     assert "скоро" not in t("help.interests") and "soon" not in t("help.interests").lower()
+
+
+@pytest.mark.asyncio
+async def test_help_no_longer_marks_upgrade_as_coming_soon() -> None:
+    update = make_message_update(text="/help")
+
+    with mock_answer(update.message) as answer:
+        await handle_help(update.message)
+        (sent_text,), _ = answer.call_args
+
+    # FR-BOT-002 PR 6/6 (final) implements /upgrade — its /help line must
+    # no longer carry the "coming soon" marker PR 1 gave it. All 10
+    # FR-BOT-002 commands are now implemented, so no command's /help line
+    # should carry a "coming soon"/"скоро" marker anymore.
+    assert t("help.upgrade") in sent_text
+    assert "скоро" not in t("help.upgrade") and "soon" not in t("help.upgrade").lower()
+    assert "скоро" not in sent_text and "coming soon" not in sent_text.lower()

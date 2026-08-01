@@ -16,7 +16,17 @@ from aiogram.types import BotCommand
 
 from src import error_handler
 from src.config import Settings, load_settings
-from src.handlers import cancel, event_detail, events, fallback, interests, leaderboard, me, start
+from src.handlers import (
+    cancel,
+    event_detail,
+    events,
+    fallback,
+    interests,
+    leaderboard,
+    me,
+    start,
+    upgrade,
+)
 from src.handlers import help as help_handler
 from src.logging_setup import configure_logging
 from src.middlewares.auth import AuthMiddleware
@@ -36,15 +46,17 @@ logger = logging.getLogger("bot.main")
 # free text, matched by the handler's own Command("register") filter +
 # CommandObject.args, same mechanism BotFather-registered commands use
 # under the hood — the only difference is whether it appears in Telegram's
-# command-menu UI. /me (FR-BOT-002 PR 3/6), /leaderboard (PR 4/6), and
-# /interests (PR 5/6) all take no argument, so each belongs in this menu
-# like /events and /help.
+# command-menu UI. /me (FR-BOT-002 PR 3/6), /leaderboard (PR 4/6),
+# /interests (PR 5/6), and /upgrade (PR 6/6) all take no argument (/upgrade
+# collects its email via FSM reply, not a command argument), so each
+# belongs in this menu like /events and /help.
 BOT_COMMANDS = (
     BotCommand(command="start", description="Начать / выбрать страну"),
     BotCommand(command="events", description="Ближайшие мероприятия"),
     BotCommand(command="me", description="Мои записи и статус аккаунта"),
     BotCommand(command="leaderboard", description="Таблица лидеров"),
     BotCommand(command="interests", description="Мои темы интересов"),
+    BotCommand(command="upgrade", description="Привязать email к аккаунту"),
     BotCommand(command="help", description="Список команд"),
 )
 
@@ -78,6 +90,7 @@ def build_dispatcher(settings: Settings, api_client: ApiClient, cache: UserCache
     dispatcher.include_router(me.router)
     dispatcher.include_router(leaderboard.router)
     dispatcher.include_router(interests.router)
+    dispatcher.include_router(upgrade.router)
     dispatcher.include_router(fallback.router)
     dispatcher.include_router(error_handler.router)
 

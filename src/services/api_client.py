@@ -18,6 +18,7 @@ ME_PATH = "/v1/internal/telegram/me"
 LEADERBOARD_PATH = "/v1/internal/telegram/leaderboard"
 INTERESTS_PATH = "/v1/internal/telegram/interests"
 INTERESTS_TOGGLE_PATH = "/v1/internal/telegram/interests/toggle"
+UPGRADE_TEMP_PATH = "/v1/internal/telegram/upgrade-temp"
 
 
 class ApiClientError(Exception):
@@ -61,6 +62,26 @@ class RegistrationConsentRequiredError(ApiClientError):
 
 class RegistrationIneligibleError(ApiClientError):
     """The API returned 409 {error: registration_ineligible} for POST /register."""
+
+
+class NotATempAccountError(ApiClientError):
+    """The API returned 409 {error: not_a_temp_account} for POST /upgrade-temp.
+
+    FR-BOT-002 PR 6/6. The caller is already a full member — /upgrade's
+    handler normally short-circuits this client-side via
+    user_context.is_temp before ever calling the API (see upgrade.py), so
+    reaching this exception means a race (the account was upgraded, by
+    another /upgrade call or an already-pending magic-link click, between
+    the handler's own guard check and this request landing).
+    """
+
+
+class EmailAlreadyInUseError(ApiClientError):
+    """The API returned 409 {error: email_already_in_use} for POST /upgrade-temp.
+
+    FR-AUTH-006 AC-7: the supplied email belongs to a different Authentik
+    user already. No mutation happened on the API side for this response.
+    """
 
 
 @dataclass(frozen=True, slots=True)
@@ -568,6 +589,50 @@ class ApiClient:
             selected=list(body.get("selected", [])),
             available=list(body.get("available", [])),
         )
+
+    async def request_upgrade(self, *, telegram_id: str, email: str) -> None:
+        """Start a temp-account upgrade via POST /v1/internal/telegram/upgrade-temp.
+
+        FR-BOT-002 PR 6/6, FR-AUTH-006. Success has no payload worth
+        modeling — the endpoint always returns `{ok: true}` — so this
+        returns None; callers treat "no exception raised" as success,
+        matching the pattern lookup_telegram_user's callers already use
+        for their own success case (a populated dataclass there vs. plain
+        completion here, since there is nothing else to report).
+
+        Raises:
+            TelegramUserNotFoundError: API returned 404
+                (no Authentik user for this telegram_id — see that
+                exception's own docstring; reused here rather than adding
+                a duplicate type, since it is the same semantic outcome
+                lookup_telegram_user already models).
+            NotATempAccountError: API returned 409 {error: not_a_temp_account}.
+            EmailAlreadyInUseError: API returned 409 {error: email_already_in_use}.
+            ApiUnavailableError: any other non-2xx response, network error,
+                or timeout.
+        """
+        url = f"{self._base_url}{UPGRADE_TEMP_PATH}"
+        try:
+            response = await self._client.post(
+                url,
+                json={"telegramId": telegram_id, "email": email},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"request_upgrade request failed: {exc}") from exc
+
+        if response.status_code == httpx.codes.NOT_FOUND:
+            raise TelegramUserNotFoundError(telegram_id)
+        if response.status_code == httpx.codes.CONFLICT:
+            error = response.json().get("error")
+            if error == "email_already_in_use":
+                raise EmailAlreadyInUseError(email)
+            raise NotATempAccountError(telegram_id)
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from upgrade-temp endpoint",
+                status_code=response.status_code,
+            )
 
     async def toggle_interest(self, *, directus_user_id: str, topic: str) -> InterestsResult:
         """Toggle one topic interest via

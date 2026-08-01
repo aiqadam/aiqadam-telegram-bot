@@ -17,7 +17,7 @@ STRINGS: dict[str, str] = {
     "help.me": "/me — my registrations and account status",
     "help.leaderboard": "/leaderboard — leaderboard",
     "help.interests": "/interests — my topic interests",
-    "help.upgrade": "/upgrade — link an email to your account (coming soon)",
+    "help.upgrade": "/upgrade — link an email to your account",
     "help.help": "/help — this message",
     "events.empty": "No upcoming events yet. Check back soon!",
     "events.title": "Upcoming events:",
@@ -105,4 +105,26 @@ STRINGS: dict[str, str] = {
     "interests.topic.career": "AI Careers",
     "interests.topic.ethics": "AI Ethics",
     "interests.topic.infra": "AI Infrastructure",
+    # FEAT-BOT-2 (FR-BOT-002 PR 6/6)
+    "upgrade.already_full_account": "This account is already a full member — no email needed.",
+    "upgrade.prompt_email": (
+        "Enter your email — we'll send you a sign-in link. Once you click it, "
+        "your account becomes a full member: points and the leaderboard unlock."
+    ),
+    "upgrade.invalid_email": (
+        "That doesn't look like an email. Enter an address like name@example.com."
+    ),
+    "upgrade.magic_link_sent": (
+        "A sign-in link was sent to that email. It's valid for about 30 minutes — "
+        "click it to finish linking your account."
+    ),
+    "upgrade.telegram_user_not_found": "Couldn't find your account. Try running /start again.",
+    "upgrade.email_already_in_use": (
+        "That email is already used by another account. Enter a different address "
+        "via /upgrade, or sign in on the web with that email using its sign-in link."
+    ),
+    "upgrade.unavailable": (
+        "Couldn't start linking your email — the service is temporarily unavailable. "
+        "Please try again shortly."
+    ),
 }

@@ -18,7 +18,7 @@ STRINGS: dict[str, str] = {
     "help.me": "/me — мои записи и статус аккаунта",
     "help.leaderboard": "/leaderboard — таблица лидеров",
     "help.interests": "/interests — мои темы интересов",
-    "help.upgrade": "/upgrade — привязать email к аккаунту (скоро)",
+    "help.upgrade": "/upgrade — привязать email к аккаунту",
     "help.help": "/help — это сообщение",
     "events.empty": "Пока нет ближайших мероприятий. Загляните позже!",
     "events.title": "Ближайшие мероприятия:",
@@ -109,4 +109,27 @@ STRINGS: dict[str, str] = {
     "interests.topic.career": "Карьера в AI",
     "interests.topic.ethics": "Этика AI",
     "interests.topic.infra": "AI-инфраструктура",
+    # FEAT-BOT-2 (FR-BOT-002 PR 6/6)
+    "upgrade.already_full_account": ("Этот аккаунт уже полноценный — привязывать email не нужно."),
+    "upgrade.prompt_email": (
+        "Введите email — мы отправим на него ссылку для входа. "
+        "После перехода по ссылке ваш аккаунт станет полноценным: "
+        "баллы и таблица лидеров станут доступны."
+    ),
+    "upgrade.invalid_email": ("Похоже, это не email. Введите адрес в формате name@example.com."),
+    "upgrade.magic_link_sent": (
+        "Ссылка для входа отправлена на указанный email. Она действительна "
+        "около 30 минут — перейдите по ней, чтобы завершить привязку."
+    ),
+    "upgrade.telegram_user_not_found": (
+        "Не удалось найти ваш аккаунт. Попробуйте выполнить /start ещё раз."
+    ),
+    "upgrade.email_already_in_use": (
+        "Этот email уже используется другим аккаунтом. Введите другой адрес "
+        "через /upgrade, либо войдите на сайте с этим email через ссылку для входа."
+    ),
+    "upgrade.unavailable": (
+        "Не удалось начать привязку email — сервис временно недоступен. "
+        "Попробуйте ещё раз чуть позже."
+    ),
 }

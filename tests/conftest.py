@@ -6,6 +6,9 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.base import StorageKey
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import CallbackQuery, Chat, Message, Update, User
 
 
@@ -89,3 +92,17 @@ def make_callback_query(
         message=message,
         data=data,
     )
+
+
+def make_fsm_context(*, bot_id: int = 999, telegram_user_id: int = 12345) -> FSMContext:
+    """Build a real FSMContext backed by a fresh in-memory MemoryStorage.
+
+    FR-BOT-002 PR 6/6 — /upgrade is the bot's first real FSM usage. A real
+    FSMContext (rather than a mock) is used so tests exercise actual
+    set_state/get_state/clear semantics, not a stand-in that could silently
+    diverge from aiogram's real behavior. One fresh MemoryStorage per call
+    means state never leaks between tests.
+    """
+    storage = MemoryStorage()
+    key = StorageKey(bot_id=bot_id, chat_id=telegram_user_id, user_id=telegram_user_id)
+    return FSMContext(storage=storage, key=key)
