@@ -132,4 +132,43 @@ STRINGS: dict[str, str] = {
         "Не удалось начать привязку email — сервис временно недоступен. "
         "Попробуйте ещё раз чуть позже."
     ),
+    # FEAT-BOT-3 (FR-BOT-003) — operator commands
+    "operator.access_denied": "У вас нет доступа к этой команде.",
+    "help.operator_section": "Команды организатора:",
+    "help.attendance": "/attendance <N> — явка на мероприятие №N",
+    "help.scan": "/scan — сканировать QR-код для отметки участника",
+    "help.approvals": "/approvals — заявки на одобрение",
+    "help.announce": "/announce <N> — рассылка участникам мероприятия №N",
+    "attendance.usage": "Использование: /attendance <номер>, например /attendance 5",
+    "attendance.result": (
+        "<b>{title}</b>\n"
+        "Зарегистрированы: {registered}\n"
+        "Пришли (отмечено): {attended}\n"
+        "Список ожидания: {waitlisted}"
+    ),
+    "scan.prompt": "Отправьте фото QR-кода для отметки участника.",
+    "scan.no_photo": "Пожалуйста, отправьте фото с QR-кодом.",
+    "scan.no_qr_found": "QR-код на изображении не найден. Попробуйте ещё раз с другим ракурсом.",
+    "scan.not_found": "QR-код не распознан — возможно, код недействителен или устарел.",
+    "scan.ineligible": "Эта регистрация не может быть отмечена (отменена или в листе ожидания).",
+    "scan.success": "Участник отмечен ✓\n{member}\n{event}",
+    "scan.already_checked_in": "Участник уже был отмечен ранее.\n{member}\n{event}",
+    "scan.unknown_member": "Участник",
+    "approvals.title": "Заявки на одобрение:",
+    "approvals.item": "{member} → {event}",
+    "approvals.empty": "Нет заявок на одобрение.",
+    "approvals.button_approve": "Одобрить",
+    "approvals.button_decline": "Отклонить",
+    "approvals.approved": "Заявка одобрена.",
+    "approvals.declined": "Заявка отклонена.",
+    "announce.usage": "Использование: /announce <номер>, например /announce 5",
+    "announce.prompt_message": (
+        "Введите текст объявления. Оно будет отправлено всем подтверждённым участникам."
+    ),
+    "announce.empty_message": "Текст объявления не может быть пустым. Введите сообщение.",
+    "announce.message_too_long": "Сообщение слишком длинное (максимум 4000 символов).",
+    "announce.sent": "Объявление отправлено {count} участникам.",
+    "me.operator_stats_title": "<b>Статистика организатора:</b>",
+    "me.operator_stats_events": "Мероприятий в стране: {count}",
+    "me.operator_stats_registrations": "Регистраций за 30 дней: {count}",
 }

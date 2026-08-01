@@ -19,6 +19,14 @@ LEADERBOARD_PATH = "/v1/internal/telegram/leaderboard"
 INTERESTS_PATH = "/v1/internal/telegram/interests"
 INTERESTS_TOGGLE_PATH = "/v1/internal/telegram/interests/toggle"
 UPGRADE_TEMP_PATH = "/v1/internal/telegram/upgrade-temp"
+# FR-BOT-003 operator paths
+ATTENDANCE_PATH = "/v1/internal/telegram/attendance/"
+OPERATOR_CHECKIN_PATH = "/v1/internal/telegram/operator/checkin"
+PENDING_APPROVALS_PATH = "/v1/internal/telegram/operator/pending-approvals"
+APPROVE_REGISTRATION_PATH = "/v1/internal/telegram/operator/approve-registration"
+DECLINE_REGISTRATION_PATH = "/v1/internal/telegram/operator/decline-registration"
+PUSH_ANNOUNCEMENT_PATH = "/v1/internal/telegram/push-announcement"
+OPERATOR_STATS_PATH = "/v1/internal/telegram/operator/stats"
 
 
 class ApiClientError(Exception):
@@ -44,6 +52,8 @@ class LookupResult:
     directus_user_id: str | None
     is_temp: bool
     country: str | None
+    # FR-BOT-003 — role gate. Null when no role is assigned yet.
+    role: str | None = None
 
 
 class EventNotFoundError(ApiClientError):
@@ -226,6 +236,69 @@ class InterestsResult:
     available: list[str] = field(default_factory=list)
 
 
+# ── FR-BOT-003 operator dataclasses ──────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class AttendanceCounts:
+    """Mirrors the API's `TelegramAttendanceResult`."""
+
+    registered: int
+    attended: int
+    waitlisted: int
+    event_title: str
+
+
+@dataclass(frozen=True, slots=True)
+class CheckinResult:
+    """Mirrors the API's `OperatorCheckinResult`."""
+
+    member_name: str
+    event_title: str
+    already_checked_in: bool
+
+
+class CheckinNotFoundError(ApiClientError):
+    """QR code not recognized (API returned 404 checkin_token_not_found)."""
+
+
+class CheckinIneligibleError(ApiClientError):
+    """Registration is not eligible for check-in (cancelled or waitlisted)."""
+
+
+@dataclass(frozen=True, slots=True)
+class PendingApprovalItem:
+    """One item from the API's `TelegramPendingApprovalsResult.items`."""
+
+    registration_id: str
+    member_name: str
+    event_title: str
+    event_id: str
+    requested_at: str
+
+
+@dataclass(frozen=True, slots=True)
+class PendingApprovalsResult:
+    """Mirrors the API's `TelegramPendingApprovalsResult`."""
+
+    items: list[PendingApprovalItem] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class PushAnnouncementResult:
+    """Mirrors the API's `TelegramPushAnnouncementResult`."""
+
+    recipient_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class OperatorStatsResult:
+    """Mirrors the API's `TelegramOperatorStatsResult`."""
+
+    events_managed: int
+    registrations_this_period: int
+
+
 class ApiClient:
     """Thin async wrapper around the internal API's bot-facing endpoints."""
 
@@ -279,6 +352,7 @@ class ApiClient:
             directus_user_id=body.get("directusUserId"),
             is_temp=bool(body.get("isTemp", False)),
             country=body.get("country"),
+            role=body.get("role"),
         )
 
     async def list_events(
@@ -669,4 +743,194 @@ class ApiClient:
         return InterestsResult(
             selected=list(body.get("selected", [])),
             available=list(body.get("available", [])),
+        )
+
+    # ── FR-BOT-003 operator methods ───────────────────────────────────────────
+
+    async def get_attendance(self, *, event_id: str, country: str) -> AttendanceCounts:
+        """GET /v1/internal/telegram/attendance/:eventId."""
+        url = f"{self._base_url}{ATTENDANCE_PATH}{event_id}"
+        try:
+            response = await self._client.get(
+                url,
+                params={"country": country},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"get_attendance request failed: {exc}") from exc
+        if response.status_code == httpx.codes.NOT_FOUND:
+            raise EventNotFoundError(event_id)
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from attendance endpoint",
+                status_code=response.status_code,
+            )
+        body = response.json()
+        return AttendanceCounts(
+            registered=int(body.get("registered", 0)),
+            attended=int(body.get("attended", 0)),
+            waitlisted=int(body.get("waitlisted", 0)),
+            event_title=str(body.get("eventTitle", "")),
+        )
+
+    async def operator_checkin(self, *, qr_code_data: str, country: str) -> CheckinResult:
+        """POST /v1/internal/telegram/operator/checkin."""
+        url = f"{self._base_url}{OPERATOR_CHECKIN_PATH}"
+        try:
+            response = await self._client.post(
+                url,
+                json={"qrCodeData": qr_code_data, "country": country},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"operator_checkin request failed: {exc}") from exc
+        if response.status_code == httpx.codes.NOT_FOUND:
+            raise CheckinNotFoundError(qr_code_data)
+        if response.status_code == httpx.codes.BAD_REQUEST:
+            raise CheckinIneligibleError(response.json().get("message", "ineligible"))
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from operator checkin endpoint",
+                status_code=response.status_code,
+            )
+        body = response.json()
+        return CheckinResult(
+            member_name=str(body.get("memberName", "")),
+            event_title=str(body.get("eventTitle", "")),
+            already_checked_in=bool(body.get("alreadyCheckedIn", False)),
+        )
+
+    async def list_pending_approvals(
+        self, *, country: str, directus_user_id: str
+    ) -> PendingApprovalsResult:
+        """GET /v1/internal/telegram/operator/pending-approvals."""
+        url = f"{self._base_url}{PENDING_APPROVALS_PATH}"
+        try:
+            response = await self._client.get(
+                url,
+                params={"country": country, "directusUserId": directus_user_id},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"list_pending_approvals request failed: {exc}") from exc
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from pending-approvals endpoint",
+                status_code=response.status_code,
+            )
+        body = response.json()
+        items = [
+            PendingApprovalItem(
+                registration_id=str(item.get("registrationId", "")),
+                member_name=str(item.get("memberName", "")),
+                event_title=str(item.get("eventTitle", "")),
+                event_id=str(item.get("eventId", "")),
+                requested_at=str(item.get("requestedAt", "")),
+            )
+            for item in body.get("items", [])
+        ]
+        return PendingApprovalsResult(items=items)
+
+    async def approve_registration(
+        self, *, registration_id: str, country: str, directus_user_id: str
+    ) -> None:
+        """POST /v1/internal/telegram/operator/approve-registration."""
+        url = f"{self._base_url}{APPROVE_REGISTRATION_PATH}"
+        try:
+            response = await self._client.post(
+                url,
+                json={
+                    "registrationId": registration_id,
+                    "country": country,
+                    "directusUserId": directus_user_id,
+                },
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"approve_registration request failed: {exc}") from exc
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from approve-registration endpoint",
+                status_code=response.status_code,
+            )
+
+    async def decline_registration(
+        self, *, registration_id: str, country: str, directus_user_id: str
+    ) -> None:
+        """POST /v1/internal/telegram/operator/decline-registration."""
+        url = f"{self._base_url}{DECLINE_REGISTRATION_PATH}"
+        try:
+            response = await self._client.post(
+                url,
+                json={
+                    "registrationId": registration_id,
+                    "country": country,
+                    "directusUserId": directus_user_id,
+                },
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"decline_registration request failed: {exc}") from exc
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from decline-registration endpoint",
+                status_code=response.status_code,
+            )
+
+    async def push_announcement(
+        self,
+        *,
+        event_id: str,
+        message: str,
+        country: str,
+        directus_user_id: str,
+    ) -> PushAnnouncementResult:
+        """POST /v1/internal/telegram/push-announcement."""
+        url = f"{self._base_url}{PUSH_ANNOUNCEMENT_PATH}"
+        try:
+            response = await self._client.post(
+                url,
+                json={
+                    "eventId": event_id,
+                    "message": message,
+                    "country": country,
+                    "directusUserId": directus_user_id,
+                },
+                headers={"x-internal-auth": self._token},
+                timeout=60.0,  # fan-out can take a few seconds for large events
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"push_announcement request failed: {exc}") from exc
+        if response.status_code == httpx.codes.NOT_FOUND:
+            raise EventNotFoundError(event_id)
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from push-announcement endpoint",
+                status_code=response.status_code,
+            )
+        body = response.json()
+        return PushAnnouncementResult(recipient_count=int(body.get("recipientCount", 0)))
+
+    async def get_operator_stats(
+        self, *, directus_user_id: str, country: str
+    ) -> OperatorStatsResult:
+        """GET /v1/internal/telegram/operator/stats."""
+        url = f"{self._base_url}{OPERATOR_STATS_PATH}"
+        try:
+            response = await self._client.get(
+                url,
+                params={"directusUserId": directus_user_id, "country": country},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"get_operator_stats request failed: {exc}") from exc
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from operator stats endpoint",
+                status_code=response.status_code,
+            )
+        body = response.json()
+        return OperatorStatsResult(
+            events_managed=int(body.get("eventsManaged", 0)),
+            registrations_this_period=int(body.get("registrationsThisPeriod", 0)),
         )

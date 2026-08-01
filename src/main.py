@@ -17,6 +17,9 @@ from aiogram.types import BotCommand
 from src import error_handler
 from src.config import Settings, load_settings
 from src.handlers import (
+    announce,
+    approvals,
+    attendance,
     cancel,
     event_detail,
     events,
@@ -24,6 +27,7 @@ from src.handlers import (
     interests,
     leaderboard,
     me,
+    scan,
     start,
     upgrade,
 )
@@ -91,6 +95,11 @@ def build_dispatcher(settings: Settings, api_client: ApiClient, cache: UserCache
     dispatcher.include_router(leaderboard.router)
     dispatcher.include_router(interests.router)
     dispatcher.include_router(upgrade.router)
+    # FR-BOT-003 operator routers (registered before fallback, after member commands)
+    dispatcher.include_router(attendance.router)
+    dispatcher.include_router(scan.router)
+    dispatcher.include_router(approvals.router)
+    dispatcher.include_router(announce.router)
     dispatcher.include_router(fallback.router)
     dispatcher.include_router(error_handler.router)
 

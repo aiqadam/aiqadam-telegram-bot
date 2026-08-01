@@ -33,6 +33,8 @@ GET /v1/internal/telegram/me call this PR adds.
 
 from __future__ import annotations
 
+import contextlib
+
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
@@ -47,6 +49,7 @@ from src.services.api_client import (
     EventNotFoundError,
     MeRegistration,
     MeSummary,
+    OperatorStatsResult,
 )
 
 router = Router(name="me")
@@ -87,11 +90,28 @@ def _render_registrations(registrations: list[MeRegistration], lang: str) -> lis
     return lines
 
 
-def render_me(summary: MeSummary, *, is_temp: bool, lang: str) -> str:
+def render_me(
+    summary: MeSummary,
+    *,
+    is_temp: bool,
+    lang: str,
+    operator_stats: OperatorStatsResult | None = None,
+) -> str:
     lines = [t("me.title", lang), ""]
     lines.extend(_render_registrations(summary.registrations, lang))
     lines.append("")
     lines.append(t("me.points_total", lang).format(points=summary.points_total))
+    if operator_stats is not None:
+        lines.append("")
+        lines.append(t("me.operator_stats_title", lang))
+        lines.append(
+            t("me.operator_stats_events", lang).format(count=operator_stats.events_managed)
+        )
+        lines.append(
+            t("me.operator_stats_registrations", lang).format(
+                count=operator_stats.registrations_this_period
+            )
+        )
     if is_temp:
         lines.append("")
         lines.append(t("me.temp_account_nudge", lang))
@@ -123,7 +143,21 @@ async def handle_me(
         await message.answer(t("me.unavailable", lang))
         return
 
-    text = render_me(summary, is_temp=user_context.is_temp, lang=lang)
+    # FR-BOT-003 — fetch operator stats card if the caller has an operator role.
+    operator_stats: OperatorStatsResult | None = None
+    if user_context.is_operator():
+        with contextlib.suppress(ApiUnavailableError):
+            operator_stats = await api_client.get_operator_stats(
+                directus_user_id=user_context.directus_user_id,
+                country=user_context.country,
+            )
+
+    text = render_me(
+        summary,
+        is_temp=user_context.is_temp,
+        lang=lang,
+        operator_stats=operator_stats,
+    )
     keyboard = me_registrations_keyboard(summary.registrations, lang)
     await message.answer(text, reply_markup=keyboard)
 

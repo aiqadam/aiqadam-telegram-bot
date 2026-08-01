@@ -61,6 +61,10 @@ class UserContext:
         True  -> lookup succeeded, an Authentik user exists for this telegram_id.
         False -> lookup returned 404, confirmed no Authentik user yet.
         None  -> lookup could not be completed (API unavailable); unknown status.
+    role:
+        FR-BOT-003 — role gate. Populated when is_known=True from the
+        lookup response's `role` field (derived from Authentik group names).
+        None when is_known is False or None, or when the API returned no role.
     """
 
     telegram_id: str
@@ -68,6 +72,11 @@ class UserContext:
     directus_user_id: str | None
     is_temp: bool
     country: str | None
+    role: str | None = None
+
+    def is_operator(self) -> bool:
+        """True when the user has organizer, country_admin, or super_admin role."""
+        return self.role in ("organizer", "country_admin", "super_admin")
 
 
 class AuthMiddleware(BaseMiddleware):
@@ -127,4 +136,5 @@ class AuthMiddleware(BaseMiddleware):
             directus_user_id=result.directus_user_id,
             is_temp=result.is_temp,
             country=result.country,
+            role=result.role,
         )

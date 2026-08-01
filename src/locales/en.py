@@ -127,4 +127,43 @@ STRINGS: dict[str, str] = {
         "Couldn't start linking your email — the service is temporarily unavailable. "
         "Please try again shortly."
     ),
+    # FEAT-BOT-3 (FR-BOT-003) — operator commands
+    "operator.access_denied": "You don't have access to this command.",
+    "help.operator_section": "Organizer commands:",
+    "help.attendance": "/attendance <N> — live attendance for event #N",
+    "help.scan": "/scan — scan a member's QR code to check them in",
+    "help.approvals": "/approvals — pending registration approvals",
+    "help.announce": "/announce <N> — push announcement to event #N registrants",
+    "attendance.usage": "Usage: /attendance <number>, e.g. /attendance 5",
+    "attendance.result": (
+        "<b>{title}</b>\n"
+        "Registered: {registered}\n"
+        "Checked in: {attended}\n"
+        "Waitlisted: {waitlisted}"
+    ),
+    "scan.prompt": "Send the QR code photo to check in a member.",
+    "scan.no_photo": "Please send a photo with a QR code.",
+    "scan.no_qr_found": "No QR code found in the image. Try again with a clearer photo.",
+    "scan.not_found": "QR code not recognised — it may be invalid or expired.",
+    "scan.ineligible": "This registration can't be checked in (cancelled or waitlisted).",
+    "scan.success": "Checked in ✓\n{member}\n{event}",
+    "scan.already_checked_in": "Already checked in earlier.\n{member}\n{event}",
+    "scan.unknown_member": "Member",
+    "approvals.title": "Pending approvals:",
+    "approvals.item": "{member} → {event}",
+    "approvals.empty": "No pending approvals.",
+    "approvals.button_approve": "Approve",
+    "approvals.button_decline": "Decline",
+    "approvals.approved": "Approved.",
+    "approvals.declined": "Declined.",
+    "announce.usage": "Usage: /announce <number>, e.g. /announce 5",
+    "announce.prompt_message": (
+        "Enter your announcement text. It will be sent to all confirmed registrants."
+    ),
+    "announce.empty_message": "Announcement text cannot be empty. Please enter a message.",
+    "announce.message_too_long": "Message too long (maximum 4000 characters).",
+    "announce.sent": "Announcement sent to {count} members.",
+    "me.operator_stats_title": "<b>Organizer stats:</b>",
+    "me.operator_stats_events": "Events in your country: {count}",
+    "me.operator_stats_registrations": "Registrations (last 30 days): {count}",
 }

@@ -9,6 +9,11 @@ dependencies = [
   "httpx>=0.27,<1.0",
   "pydantic>=2.7,<3.0",
   "pydantic-settings>=2.3,<3.0",
+  # FR-BOT-003 — QR code decoding for /scan. pyzbar wraps libzbar0 (system
+  # package); Pillow is required by pyzbar for image loading. Both are
+  # MIT-licensed. libzbar0 must be installed in the Docker image.
+  "pyzbar>=0.1.9,<1.0",
+  "Pillow>=10.0,<12.0",
 ]
 
 [project.optional-dependencies]

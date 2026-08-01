@@ -1,4 +1,4 @@
-"""Tests for the /help handler (FR-BOT-002 PR 1/6, updated PR 2/6, PR 3/6, PR 4/6)."""
+"""Tests for the /help handler (FR-BOT-002 PR 1/6, updated PR 2/6, PR 3/6, PR 4/6, FR-BOT-003)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ async def test_help_lists_all_ten_commands() -> None:
     update = make_message_update(text="/help")
 
     with mock_answer(update.message) as answer:
-        await handle_help(update.message)
+        await handle_help(update.message, user_context=None)
         answer.assert_awaited_once()
         (sent_text,), _ = answer.call_args
 
@@ -38,7 +38,7 @@ async def test_help_no_longer_marks_register_and_cancel_as_coming_soon() -> None
     update = make_message_update(text="/help")
 
     with mock_answer(update.message) as answer:
-        await handle_help(update.message)
+        await handle_help(update.message, user_context=None)
         (sent_text,), _ = answer.call_args
 
     # FR-BOT-002 PR 2/6 implements /register and /cancel — their /help
@@ -54,7 +54,7 @@ async def test_help_no_longer_marks_me_as_coming_soon() -> None:
     update = make_message_update(text="/help")
 
     with mock_answer(update.message) as answer:
-        await handle_help(update.message)
+        await handle_help(update.message, user_context=None)
         (sent_text,), _ = answer.call_args
 
     # FR-BOT-002 PR 3/6 implements /me — its /help line must no longer
@@ -68,7 +68,7 @@ async def test_help_no_longer_marks_leaderboard_as_coming_soon() -> None:
     update = make_message_update(text="/help")
 
     with mock_answer(update.message) as answer:
-        await handle_help(update.message)
+        await handle_help(update.message, user_context=None)
         (sent_text,), _ = answer.call_args
 
     # FR-BOT-002 PR 4/6 implements /leaderboard — its /help line must no
@@ -82,7 +82,7 @@ async def test_help_no_longer_marks_interests_as_coming_soon() -> None:
     update = make_message_update(text="/help")
 
     with mock_answer(update.message) as answer:
-        await handle_help(update.message)
+        await handle_help(update.message, user_context=None)
         (sent_text,), _ = answer.call_args
 
     # FR-BOT-002 PR 5/6 implements /interests — its /help line must no
@@ -96,7 +96,7 @@ async def test_help_no_longer_marks_upgrade_as_coming_soon() -> None:
     update = make_message_update(text="/help")
 
     with mock_answer(update.message) as answer:
-        await handle_help(update.message)
+        await handle_help(update.message, user_context=None)
         (sent_text,), _ = answer.call_args
 
     # FR-BOT-002 PR 6/6 (final) implements /upgrade — its /help line must
