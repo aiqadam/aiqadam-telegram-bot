@@ -166,4 +166,37 @@ STRINGS: dict[str, str] = {
     "me.operator_stats_title": "<b>Organizer stats:</b>",
     "me.operator_stats_events": "Events in your country: {count}",
     "me.operator_stats_registrations": "Registrations (last 30 days): {count}",
+    # FR-AUTH-005 /link flow
+    "link.prompt_email": (
+        "Enter your AI Qadam account email. We'll send you a 6-digit code to confirm."
+    ),
+    "link.invalid_email": (
+        "That doesn't look like an email. Enter an address like name@example.com."
+    ),
+    "link.code_sent": (
+        "A 6-digit code was sent to {email}. It expires in 5 minutes. "
+        "Enter the code now."
+    ),
+    "link.success": (
+        "Your Telegram account is now linked. "
+        "You can check status on the web at aiqadam.org/me."
+    ),
+    "link.wrong_code": (
+        "That code is incorrect or has expired. Run /link again to request a new one."
+    ),
+    "link.no_account": (
+        "No AI Qadam account found for that email. "
+        "Sign up on aiqadam.org first, then run /link."
+    ),
+    "link.already_linked_other": (
+        "That account is already linked to a different Telegram. "
+        "Contact support if you need to change it."
+    ),
+    "link.rate_limited": (
+        "Too many link attempts. Wait a few minutes and try /link again."
+    ),
+    "link.unavailable": (
+        "Couldn't start linking — the service is temporarily unavailable. "
+        "Please try again shortly."
+    ),
 }

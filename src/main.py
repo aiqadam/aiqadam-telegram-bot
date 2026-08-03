@@ -26,6 +26,7 @@ from src.handlers import (
     fallback,
     interests,
     leaderboard,
+    link,
     me,
     scan,
     start,
@@ -61,6 +62,7 @@ BOT_COMMANDS = (
     BotCommand(command="leaderboard", description="Таблица лидеров"),
     BotCommand(command="interests", description="Мои темы интересов"),
     BotCommand(command="upgrade", description="Привязать email к аккаунту"),
+    BotCommand(command="link", description="Привязать Telegram к веб-аккаунту"),
     BotCommand(command="help", description="Список команд"),
 )
 
@@ -95,6 +97,8 @@ def build_dispatcher(settings: Settings, api_client: ApiClient, cache: UserCache
     dispatcher.include_router(leaderboard.router)
     dispatcher.include_router(interests.router)
     dispatcher.include_router(upgrade.router)
+    # FR-AUTH-005 link router
+    dispatcher.include_router(link.router)
     # FR-BOT-003 operator routers (registered before fallback, after member commands)
     dispatcher.include_router(attendance.router)
     dispatcher.include_router(scan.router)

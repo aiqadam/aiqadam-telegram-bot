@@ -35,6 +35,7 @@ def test_bot_commands_includes_the_argument_less_commands() -> None:
         "leaderboard",
         "interests",
         "upgrade",
+        "link",
         "help",
     }
 
@@ -62,6 +63,7 @@ def test_build_dispatcher_registers_all_expected_routers(tmp_path) -> None:
         "leaderboard",
         "interests",
         "upgrade",
+        "link",
         "fallback",
         "errors",
     }.issubset(router_names)

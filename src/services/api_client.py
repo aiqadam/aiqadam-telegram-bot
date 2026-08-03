@@ -27,6 +27,9 @@ APPROVE_REGISTRATION_PATH = "/v1/internal/telegram/operator/approve-registration
 DECLINE_REGISTRATION_PATH = "/v1/internal/telegram/operator/decline-registration"
 PUSH_ANNOUNCEMENT_PATH = "/v1/internal/telegram/push-announcement"
 OPERATOR_STATS_PATH = "/v1/internal/telegram/operator/stats"
+# FR-AUTH-005 link paths (public, gated by x-internal-auth service token)
+LINK_START_PATH = "/v1/telegram/link/start"
+LINK_CONFIRM_PATH = "/v1/telegram/link/confirm"
 
 
 class ApiClientError(Exception):
@@ -91,6 +94,49 @@ class EmailAlreadyInUseError(ApiClientError):
 
     FR-AUTH-006 AC-7: the supplied email belongs to a different Authentik
     user already. No mutation happened on the API side for this response.
+    """
+
+
+# ── FR-AUTH-005 link-flow exceptions ─────────────────────────────────────────
+
+
+class LinkMemberNotFoundError(ApiClientError):
+    """The API returned 404 member_not_found for POST /link/confirm.
+
+    The email had a valid challenge but no AI Qadam account exists for it.
+    The bot informs the user they need to create an account on the web first.
+    """
+
+
+class LinkInvalidCodeError(ApiClientError):
+    """The API returned 401 invalid_code for POST /link/confirm.
+
+    Either the code is wrong, the challenge has expired, the challenge
+    does not belong to this tg_user_id, or attempts are exhausted.
+    The bot prompts the user to try again or restart with /link.
+    """
+
+
+class LinkExhaustedError(ApiClientError):
+    """The confirm-attempt ceiling was reached (401 invalid_code after
+    MAX_CONFIRM_ATTEMPTS). Distinct from a simple wrong-code to allow
+    the bot to tell the user to start over rather than just "try again".
+    """
+
+
+class LinkAlreadyLinkedOtherError(ApiClientError):
+    """The API returned 409 already_linked_to_different_account.
+
+    The Directus member account is already linked to a different Telegram
+    ID. The bot informs the user they must unlink the other account first.
+    """
+
+
+class LinkRateLimitedError(ApiClientError):
+    """The API returned 400 rate_limited for POST /link/start.
+
+    Too many active challenges from this Telegram ID. The bot asks
+    the user to wait a few minutes before trying again.
     """
 
 
@@ -297,6 +343,25 @@ class OperatorStatsResult:
 
     events_managed: int
     registrations_this_period: int
+
+
+# ── FR-AUTH-005 link-flow dataclasses ────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class LinkStartResult:
+    """Mirrors the API's link/start response shape."""
+
+    challenge_id: str
+    sent_to_email_masked: str
+
+
+@dataclass(frozen=True, slots=True)
+class LinkConfirmResult:
+    """Mirrors the API's link/confirm response shape."""
+
+    member_id: str
+    tenant: str
 
 
 class ApiClient:
@@ -933,4 +998,106 @@ class ApiClient:
         return OperatorStatsResult(
             events_managed=int(body.get("eventsManaged", 0)),
             registrations_this_period=int(body.get("registrationsThisPeriod", 0)),
+        )
+
+    # ── FR-AUTH-005 link methods ───────────────────────────────────────────────
+
+    async def request_link_start(self, *, telegram_id: str, email: str) -> LinkStartResult:
+        """Start the link flow via POST /v1/telegram/link/start.
+
+        FR-AUTH-005 Surface B. Sends a 6-digit OTP to the supplied email
+        if a member account exists for it (email enumeration is prevented
+        server-side — the API always returns the same envelope shape
+        regardless of whether the member exists).
+
+        Raises:
+            LinkRateLimitedError: API returned 400 rate_limited — too many
+                active challenges from this Telegram ID.
+            ApiUnavailableError: any other non-2xx response, network error,
+                or timeout.
+        """
+        url = f"{self._base_url}{LINK_START_PATH}"
+        try:
+            response = await self._client.post(
+                url,
+                json={"tg_user_id": telegram_id, "email": email},
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"request_link_start request failed: {exc}") from exc
+
+        if response.status_code == httpx.codes.BAD_REQUEST:
+            error = response.json().get("message") or response.json().get("error", "")
+            if "rate_limited" in str(error):
+                raise LinkRateLimitedError(telegram_id)
+            raise ApiUnavailableError(
+                f"bad request from link/start: {error}",
+                status_code=response.status_code,
+            )
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from link/start endpoint",
+                status_code=response.status_code,
+            )
+
+        body = response.json()
+        return LinkStartResult(
+            challenge_id=body["challenge_id"],
+            sent_to_email_masked=body.get("sent_to_email_masked", ""),
+        )
+
+    async def request_link_confirm(
+        self,
+        *,
+        challenge_id: str,
+        code: str,
+        telegram_id: str,
+        telegram_username: str | None,
+    ) -> LinkConfirmResult:
+        """Complete the link flow via POST /v1/telegram/link/confirm.
+
+        FR-AUTH-005 Surface B. Verifies the OTP and writes the Telegram
+        identity to the member's Directus row.
+
+        Raises:
+            LinkInvalidCodeError: API returned 401 invalid_code.
+            LinkMemberNotFoundError: API returned 404 member_not_found.
+            LinkAlreadyLinkedOtherError: API returned 409
+                already_linked_to_different_account.
+            ApiUnavailableError: any other non-2xx response, network error,
+                or timeout.
+        """
+        url = f"{self._base_url}{LINK_CONFIRM_PATH}"
+        payload: dict[str, object] = {
+            "challenge_id": challenge_id,
+            "code": code,
+            "tg_user_id": telegram_id,
+        }
+        if telegram_username is not None:
+            payload["tg_username"] = telegram_username
+        try:
+            response = await self._client.post(
+                url,
+                json=payload,
+                headers={"x-internal-auth": self._token},
+            )
+        except httpx.HTTPError as exc:
+            raise ApiUnavailableError(f"request_link_confirm request failed: {exc}") from exc
+
+        if response.status_code == httpx.codes.UNAUTHORIZED:
+            raise LinkInvalidCodeError(challenge_id)
+        if response.status_code == httpx.codes.NOT_FOUND:
+            raise LinkMemberNotFoundError(challenge_id)
+        if response.status_code == httpx.codes.CONFLICT:
+            raise LinkAlreadyLinkedOtherError(telegram_id)
+        if response.status_code != httpx.codes.OK:
+            raise ApiUnavailableError(
+                f"unexpected status {response.status_code} from link/confirm endpoint",
+                status_code=response.status_code,
+            )
+
+        body = response.json()
+        return LinkConfirmResult(
+            member_id=body["member_id"],
+            tenant=body.get("tenant", ""),
         )

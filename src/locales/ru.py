@@ -171,4 +171,37 @@ STRINGS: dict[str, str] = {
     "me.operator_stats_title": "<b>Статистика организатора:</b>",
     "me.operator_stats_events": "Мероприятий в стране: {count}",
     "me.operator_stats_registrations": "Регистраций за 30 дней: {count}",
+    # FR-AUTH-005 /link flow
+    "link.prompt_email": (
+        "Введите email вашего аккаунта на AI Qadam. "
+        "Мы отправим вам 6-значный код для подтверждения."
+    ),
+    "link.invalid_email": (
+        "Похоже, это не email. Введите адрес в формате name@example.com."
+    ),
+    "link.code_sent": (
+        "Код отправлен на {email}. Он действителен 5 минут. Введите код."
+    ),
+    "link.success": (
+        "Ваш Telegram-аккаунт успешно привязан. "
+        "Статус можно проверить на сайте aiqadam.org/me."
+    ),
+    "link.wrong_code": (
+        "Неверный или устаревший код. Запустите /link ещё раз, чтобы получить новый."
+    ),
+    "link.no_account": (
+        "Аккаунт AI Qadam с таким email не найден. "
+        "Сначала зарегистрируйтесь на aiqadam.org, затем выполните /link."
+    ),
+    "link.already_linked_other": (
+        "Этот аккаунт уже привязан к другому Telegram. "
+        "Обратитесь в поддержку, если нужно изменить."
+    ),
+    "link.rate_limited": (
+        "Слишком много попыток. Подождите несколько минут и повторите /link."
+    ),
+    "link.unavailable": (
+        "Не удалось начать привязку — сервис временно недоступен. "
+        "Попробуйте ещё раз чуть позже."
+    ),
 }
