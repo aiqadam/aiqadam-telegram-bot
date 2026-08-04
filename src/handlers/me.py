@@ -1,11 +1,11 @@
-"""`/me` handler (FR-BOT-002 PR 3/6).
+"""`/me` handler (FR-BOT-002 PR 3/6, extended by FR-AUTH-007).
 
 Shows the caller's active registrations (with status badges + a Cancel
 button per row), lifetime points total, and — for temp accounts — an
-upgrade nudge, plus a generic "link your account on the web" CTA.
+upgrade nudge, plus the caller's Telegram link status.
 
-Two things this command deliberately does NOT show, both documented as
-scope decisions in this PR (see
+One thing this command deliberately does NOT show, documented as a scope
+decision (see
 .copilot/tasks/active/wf-20260801-feat-176/01-requirement-validation.md
 for the full reasoning, not repeated here in full):
 
@@ -14,21 +14,21 @@ for the full reasoning, not repeated here in full):
    scoring rule (a genuine product decision, not an implementation
    detail — AGENTS.md SS13/SS14), it is simply omitted. This is a named
    scope gap, not a silently dropped feature.
-2. **A computed "is linked to web" boolean.** The only "linked" concept
-   anywhere in this repo (directus_users.telegram_user_id, ADR-0033) is
-   owned by a different, superseded auth surface
-   (apps/api/src/modules/telegram/, pre-ADR-0034) that this bot's
-   identity model (Authentik attributes, resolved via
-   TelegramAuthService.lookupUser) has no relationship to. Rather than
-   conflate the two systems, /me always shows the same generic
-   "link on web" CTA line — harmless whether or not the user has done so,
-   same posture as /help's "(coming soon)" labels for not-yet-built
-   commands.
+
+**Correction (FR-AUTH-007):** this docstring previously said /me always
+shows a generic "link on web" CTA because no "is linked" concept existed
+that this bot's identity model could read. That gap is now closed —
+`GET /v1/internal/telegram/me`'s response (`TelegramMeResult`) carries
+`telegramLinked`/`telegramUsername`, sourced from
+`directus_users.telegram_user_id` (the same field FR-AUTH-005's `/link`
+command writes), not the superseded pre-ADR-0034 surface this docstring
+originally distinguished itself from. /me now renders the caller's real
+link status instead of a static line.
 
 Account type (temp vs. full) needs no new API call — it's already on
 user_context.is_temp, attached by AuthMiddleware on every update (see
-middlewares/auth.py). Registrations + points total come from the one new
-GET /v1/internal/telegram/me call this PR adds.
+middlewares/auth.py). Registrations, points total, and Telegram link
+status all come from the one GET /v1/internal/telegram/me call.
 """
 
 from __future__ import annotations
@@ -116,7 +116,14 @@ def render_me(
         lines.append("")
         lines.append(t("me.temp_account_nudge", lang))
     lines.append("")
-    lines.append(t("me.link_web_cta", lang))
+    # FR-AUTH-007 — Telegram link status from the API response, replacing
+    # the old generic "link on web" CTA (which said nothing about whether
+    # Telegram itself was actually linked).
+    if summary.telegram_linked:
+        handle = f"@{summary.telegram_username}" if summary.telegram_username else "Telegram"
+        lines.append(t("me.telegram_linked", lang).format(handle=handle))
+    else:
+        lines.append(t("me.telegram_not_linked", lang))
     return "\n".join(lines)
 
 

@@ -232,16 +232,15 @@ class MeRegistration:
 @dataclass(frozen=True, slots=True)
 class MeSummary:
     """Mirrors the API's `TelegramMeResult` response shape (FR-BOT-002
-    PR 3/6). Deliberately has no streak/account-type/link-status fields —
-    account type comes from the caller's own UserContext.is_temp (already
-    resolved by AuthMiddleware), the link CTA is static copy, and streak
-    does not exist anywhere in this codebase yet (see
-    01-requirement-validation.md in wf-20260801-feat-176 for the full
-    reasoning — a documented scope gap, not an oversight).
+    PR 3/6). FR-AUTH-007 adds `telegram_linked` and `telegram_username`
+    so the bot's /me can show Telegram link status without a separate call.
     """
 
     registrations: list[MeRegistration] = field(default_factory=list)
     points_total: int = 0
+    # FR-AUTH-007 — telegram link status from directus_users.
+    telegram_linked: bool = False
+    telegram_username: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -652,7 +651,12 @@ class ApiClient:
             )
             for item in body.get("registrations", [])
         ]
-        return MeSummary(registrations=registrations, points_total=body.get("pointsTotal", 0))
+        return MeSummary(
+            registrations=registrations,
+            points_total=body.get("pointsTotal", 0),
+            telegram_linked=body.get("telegramLinked", False),
+            telegram_username=body.get("telegramUsername"),
+        )
 
     async def get_leaderboard(self, *, directus_user_id: str, country: str) -> LeaderboardResult:
         """Fetch the top-10 country leaderboard via

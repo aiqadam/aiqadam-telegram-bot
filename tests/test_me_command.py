@@ -199,10 +199,38 @@ async def test_me_shows_temp_account_nudge_only_for_temp_users() -> None:
     await api_client.aclose()
 
 
-def test_render_me_always_includes_link_web_cta() -> None:
-    summary = MeSummary(registrations=[], points_total=0)
+def test_render_me_shows_telegram_not_linked_prompt() -> None:
+    """FR-AUTH-007: /me shows the real Telegram link state instead of the
+    old generic "link on web" CTA. Not-linked shows a /link prompt."""
+    summary = MeSummary(registrations=[], points_total=0, telegram_linked=False)
     text = render_me(summary, is_temp=False, lang="ru")
-    assert t("me.link_web_cta") in text
+    assert t("me.telegram_not_linked") in text
+
+
+def test_render_me_shows_telegram_linked_handle() -> None:
+    summary = MeSummary(
+        registrations=[],
+        points_total=0,
+        telegram_linked=True,
+        telegram_username="ivanov",
+    )
+    text = render_me(summary, is_temp=False, lang="ru")
+    assert t("me.telegram_linked").format(handle="@ivanov") in text
+
+
+def test_render_me_shows_telegram_linked_without_username() -> None:
+    """telegram_username can be None even when linked (username is optional
+    on Telegram accounts) — falls back to a generic "Telegram" label rather
+    than rendering a literal "@None"."""
+    summary = MeSummary(
+        registrations=[],
+        points_total=0,
+        telegram_linked=True,
+        telegram_username=None,
+    )
+    text = render_me(summary, is_temp=False, lang="ru")
+    assert t("me.telegram_linked").format(handle="Telegram") in text
+    assert "@None" not in text
 
 
 def test_render_me_never_mentions_streak() -> None:

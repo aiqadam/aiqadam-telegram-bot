@@ -91,6 +91,46 @@ async def test_get_me_summary_parses_registrations_and_points() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_me_summary_parses_telegram_link_status() -> None:
+    """FR-AUTH-007: telegramLinked/telegramUsername from the API response
+    map onto MeSummary.telegram_linked/telegram_username."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "registrations": [],
+                "pointsTotal": 0,
+                "telegramLinked": True,
+                "telegramUsername": "ivanov",
+            },
+        )
+
+    api_client = _client_for(handler)
+    result = await api_client.get_me_summary(directus_user_id="dir-user-1", country="uz")
+
+    assert result.telegram_linked is True
+    assert result.telegram_username == "ivanov"
+    await api_client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_get_me_summary_defaults_telegram_link_status_when_absent() -> None:
+    """Older/minimal API responses without the FR-AUTH-007 fields still
+    parse — defaults to not-linked rather than raising."""
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"registrations": [], "pointsTotal": 0})
+
+    api_client = _client_for(handler)
+    result = await api_client.get_me_summary(directus_user_id="dir-user-1", country="uz")
+
+    assert result.telegram_linked is False
+    assert result.telegram_username is None
+    await api_client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_get_me_summary_raises_unavailable_on_500() -> None:
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(500)

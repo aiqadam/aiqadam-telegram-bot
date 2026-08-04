@@ -81,7 +81,9 @@ STRINGS: dict[str, str] = {
         "Это временный аккаунт — привяжите email через /upgrade, чтобы не потерять "
         "историю записей и баллы."
     ),
-    "me.link_web_cta": "Привязать аккаунт на сайте: используйте /upgrade.",
+    # FR-AUTH-007 — статус привязки Telegram в /me (заменяет старый общий CTA).
+    "me.telegram_linked": "{handle} — Telegram привязан.",
+    "me.telegram_not_linked": "Не привязан — выполните /link, чтобы привязать Telegram.",
     "me.button_cancel": "Отменить запись",
     # FEAT-BOT-2 (FR-BOT-002 PR 4/6)
     "leaderboard.title": "<b>Таблица лидеров</b>",

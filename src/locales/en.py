@@ -77,7 +77,9 @@ STRINGS: dict[str, str] = {
         "This is a temporary account — link an email via /upgrade so you don't "
         "lose your registration history and points."
     ),
-    "me.link_web_cta": "Link your account on the web: use /upgrade.",
+    # FR-AUTH-007 — Telegram link status on /me (replaces the old generic web CTA).
+    "me.telegram_linked": "{handle} — Telegram linked.",
+    "me.telegram_not_linked": "Not linked — run /link to connect your Telegram account.",
     "me.button_cancel": "Cancel registration",
     # FEAT-BOT-2 (FR-BOT-002 PR 4/6)
     "leaderboard.title": "<b>Leaderboard</b>",
